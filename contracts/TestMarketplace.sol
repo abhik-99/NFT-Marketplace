@@ -15,6 +15,8 @@ contract TestMarketplace is Ownable, ReentrancyGuard {
   Counters.Counter private _itemIds;
   Counters.Counter private _itemsSold;
 
+  uint256 private _amountCollected;
+
   address public nftContract;
   address public acceptedTokenAddress;
   uint256 public listingPrice = 0.1 ether;
@@ -22,12 +24,12 @@ contract TestMarketplace is Ownable, ReentrancyGuard {
   struct MarketItem {
     uint itemId;
     uint256 tokenId;
-    address payable seller;
-    address payable owner;
+    address seller;
+    address owner;
     uint256 price;
   }
 
-  mapping(uint256 => MarketItem) private idToMarketItem;
+  mapping(uint256 => MarketItem) public idToMarketItem;
 
   event MarketItemCreated (
     uint indexed itemId,
@@ -39,26 +41,15 @@ contract TestMarketplace is Ownable, ReentrancyGuard {
 
   constructor(address _nftContract, address _acceptedTokenAddress) {
     nftContract = _nftContract;
-    acceptedTokenAddress = payable(_acceptedTokenAddress);
-  }
-
-  function changeNftContract(address _newContract) public onlyOwner {
-    require(nftContract != _newContract, "Same Contract Address for New Contract");
-    nftContract = _newContract;
-  }
-
-  function changeAcceptedToken(address _newAddress) public onlyOwner {
-    require(acceptedTokenAddress != _newAddress, "Same Purchase Token supplied");
-    acceptedTokenAddress = payable(_newAddress);
+    acceptedTokenAddress = _acceptedTokenAddress;
   }
 
   function addItemToMarket(
     uint256 tokenId,
-    uint256 price,
-    uint256 _listingPrice
-  ) public payable nonReentrant onlyOwner {
+    uint256 price
+  ) public nonReentrant onlyOwner {
     require(price > 0, "Price must be at least 1 wei");
-    require(_listingPrice == listingPrice, "Price should be same as listing price");
+    require(price >= listingPrice, "Price should be at least same as listing price");
 
     _itemIds.increment();
     uint256 itemId = _itemIds.current();
@@ -66,12 +57,15 @@ contract TestMarketplace is Ownable, ReentrancyGuard {
     idToMarketItem[itemId] =  MarketItem(
       itemId,
       tokenId,
-      payable(msg.sender),
-      payable(address(this)),
+      msg.sender,
+      address(0),
       price
     );
 
-    IERC721(nftContract).safeTransferFrom(msg.sender, address(this), tokenId);
+    IERC20(acceptedTokenAddress).transferFrom(msg.sender, address(this), listingPrice);
+    IERC721(nftContract).safeTransferFrom(msg.sender, address(0), tokenId);
+
+    _amountCollected += listingPrice;
 
     emit MarketItemCreated(
       itemId,
@@ -85,20 +79,20 @@ contract TestMarketplace is Ownable, ReentrancyGuard {
   function sellItem(
     uint256 itemId,
     uint256 itemPrice
-    ) public payable nonReentrant {
+    ) public nonReentrant {
     uint price = idToMarketItem[itemId].price;
     uint tokenId = idToMarketItem[itemId].tokenId;
-    require(itemPrice == price, "Asking Price not satisfied!");
+    require(itemPrice >= price, "Asking Price not satisfied!");
 
-    address prevSeller = payable(idToMarketItem[itemId].seller);
-    address prevOwner = payable(idToMarketItem[itemId].owner);
+    address prevSeller = idToMarketItem[itemId].seller;
+    address prevOwner = idToMarketItem[itemId].owner;
 
-    idToMarketItem[itemId].owner = payable(msg.sender);
-    idToMarketItem[itemId].seller = payable(msg.sender);
+    idToMarketItem[itemId].owner = msg.sender;
+    idToMarketItem[itemId].seller = msg.sender;
 
     IERC721(nftContract).transferFrom(prevOwner, msg.sender, tokenId);
     
-    IERC20(acceptedTokenAddress).transferFrom(msg.sender, prevSeller, itemPrice);
+    IERC20(acceptedTokenAddress).transferFrom(msg.sender, address(this), itemPrice);
     
     _itemsSold.increment();
 
@@ -117,54 +111,6 @@ contract TestMarketplace is Ownable, ReentrancyGuard {
     MarketItem[] memory items = new MarketItem[](unsoldItemCount);
     for (uint i = 0; i < itemCount; i++) {
       if (idToMarketItem[i + 1].owner == address(0)) {
-        uint currentId = i + 1;
-        MarketItem memory currentItem = idToMarketItem[currentId];
-        items[currentIndex] = currentItem;
-        currentIndex += 1;
-      }
-    }
-   
-    return items;
-  }
-
-  function getItemsByOwner() public view returns (MarketItem[] memory) {
-    uint totalItemCount = _itemIds.current();
-    uint itemCount = 0;
-    uint currentIndex = 0;
-
-    for (uint i = 0; i < totalItemCount; i++) {
-      if (idToMarketItem[i + 1].owner == msg.sender) {
-        itemCount += 1;
-      }
-    }
-
-    MarketItem[] memory items = new MarketItem[](itemCount);
-    for (uint i = 0; i < totalItemCount; i++) {
-      if (idToMarketItem[i + 1].owner == msg.sender) {
-        uint currentId = i + 1;
-        MarketItem memory currentItem = idToMarketItem[currentId];
-        items[currentIndex] = currentItem;
-        currentIndex += 1;
-      }
-    }
-   
-    return items;
-  }
-
-  function getItemsBySeller(address _seller) public view returns (MarketItem[] memory) {
-    uint totalItemCount = _itemIds.current();
-    uint itemCount = 0;
-    uint currentIndex = 0;
-
-    for (uint i = 0; i < totalItemCount; i++) {
-      if (idToMarketItem[i + 1].seller == _seller) {
-        itemCount += 1;
-      }
-    }
-
-    MarketItem[] memory items = new MarketItem[](itemCount);
-    for (uint i = 0; i < totalItemCount; i++) {
-      if (idToMarketItem[i + 1].seller == _seller) {
         uint currentId = i + 1;
         MarketItem memory currentItem = idToMarketItem[currentId];
         items[currentIndex] = currentItem;
