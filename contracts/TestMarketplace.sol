@@ -27,6 +27,7 @@ contract TestMarketplace is Ownable, ReentrancyGuard {
     address seller;
     address owner;
     uint256 price;
+    bool isSold;
   }
 
   mapping(uint256 => MarketItem) public idToMarketItem;
@@ -59,7 +60,8 @@ contract TestMarketplace is Ownable, ReentrancyGuard {
       tokenId,
       msg.sender,
       address(0),
-      price
+      price,
+      false
     );
 
     IERC20(acceptedTokenAddress).transferFrom(msg.sender, address(this), listingPrice);
@@ -85,14 +87,14 @@ contract TestMarketplace is Ownable, ReentrancyGuard {
     require(itemPrice >= price, "Asking Price not satisfied!");
 
     address prevSeller = idToMarketItem[itemId].seller;
-    address prevOwner = idToMarketItem[itemId].owner;
 
     idToMarketItem[itemId].owner = msg.sender;
     idToMarketItem[itemId].seller = msg.sender;
+    idToMarketItem[itemId].isSold = true;
 
-    IERC721(nftContract).transferFrom(prevOwner, msg.sender, tokenId);
+    IERC721(nftContract).transferFrom(prevSeller, msg.sender, tokenId);
     
-    IERC20(acceptedTokenAddress).transferFrom(msg.sender, address(this), itemPrice);
+    IERC20(acceptedTokenAddress).transferFrom(msg.sender, prevSeller, itemPrice);
     
     _itemsSold.increment();
 
@@ -110,7 +112,7 @@ contract TestMarketplace is Ownable, ReentrancyGuard {
 
     MarketItem[] memory items = new MarketItem[](unsoldItemCount);
     for (uint i = 0; i < itemCount; i++) {
-      if (idToMarketItem[i + 1].owner == address(0)) {
+      if (!idToMarketItem[i + 1].isSold) {
         uint currentId = i + 1;
         MarketItem memory currentItem = idToMarketItem[currentId];
         items[currentIndex] = currentItem;
