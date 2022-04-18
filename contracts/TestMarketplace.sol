@@ -28,11 +28,21 @@ contract TestMarketplace is Ownable, ReentrancyGuard {
     address owner;
     uint256 price;
     bool isSold;
+    bool isUpForSale;
+    bool exists;
   }
 
   mapping(uint256 => MarketItem) public idToMarketItem;
 
   event MarketItemCreated (
+    uint indexed itemId,
+    uint256 indexed tokenId,
+    address seller,
+    address owner,
+    uint256 price
+  );
+
+  event MarketItemUpForSale (
     uint indexed itemId,
     uint256 indexed tokenId,
     address seller,
@@ -61,11 +71,13 @@ contract TestMarketplace is Ownable, ReentrancyGuard {
       msg.sender,
       address(0),
       price,
-      false
+      false,
+      false,
+      true
     );
 
     IERC20(acceptedTokenAddress).transferFrom(msg.sender, address(this), listingPrice);
-    IERC721(nftContract).safeTransferFrom(msg.sender, address(0), tokenId);
+    IERC721(nftContract).safeTransferFrom(msg.sender, address(this), tokenId);
 
     _amountCollected += listingPrice;
 
@@ -77,20 +89,43 @@ contract TestMarketplace is Ownable, ReentrancyGuard {
       price
     );
   }
+  
+  function createSale(
+    uint256 itemId
+  ) public nonReentrant {
+    
+    MarketItem memory item = idToMarketItem[itemId];
+    
+    require(item.owner == msg.sender, "Only Item owner can create sale.");
+    require(item.exists == true, "Item does not exist.");
+    
+    idToMarketItem[itemId].isUpForSale = true;
+    
+    emit MarketItemUpForSale (
+      itemId,
+      item.tokenId,
+      msg.sender,
+      item.seller,
+      item.price
+    );
+  }
 
-  function sellItem(
+  function buyItem(
     uint256 itemId,
     uint256 itemPrice
     ) public nonReentrant {
     uint price = idToMarketItem[itemId].price;
     uint tokenId = idToMarketItem[itemId].tokenId;
+    bool isUpForSale = idToMarketItem[itemId].isUpForSale;
     require(itemPrice >= price, "Asking Price not satisfied!");
+    require(isUpForSale == true, "NFT not for sale.");
 
     address prevSeller = idToMarketItem[itemId].seller;
 
     idToMarketItem[itemId].owner = msg.sender;
     idToMarketItem[itemId].seller = msg.sender;
     idToMarketItem[itemId].isSold = true;
+    idToMarketItem[itemId].isUpForSale = false;
 
     IERC721(nftContract).transferFrom(prevSeller, msg.sender, tokenId);
     
