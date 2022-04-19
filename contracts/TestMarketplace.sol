@@ -3,6 +3,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -10,7 +11,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 Marketplace contract 
 */
 
-contract TestMarketplace is Ownable, ReentrancyGuard {
+contract TestMarketplace is Ownable, ReentrancyGuard, IERC721Receiver {
   using Counters for Counters.Counter;
   Counters.Counter private _itemIds;
   Counters.Counter private _itemsSold;
@@ -55,10 +56,19 @@ contract TestMarketplace is Ownable, ReentrancyGuard {
     acceptedTokenAddress = _acceptedTokenAddress;
   }
 
+  function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external override returns (bytes4){
+      return this.onERC721Received.selector;
+    }
+
   function addItemToMarket(
     uint256 tokenId,
     uint256 price
-  ) public nonReentrant onlyOwner {
+  ) public nonReentrant {
     require(price > 0, "Price must be at least 1 wei");
     require(price >= listingPrice, "Price should be at least same as listing price");
 

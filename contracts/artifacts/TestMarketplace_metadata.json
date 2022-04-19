@@ -373,6 +373,40 @@
 				"type": "function"
 			},
 			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "operator",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "from",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "tokenId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bytes",
+						"name": "data",
+						"type": "bytes"
+					}
+				],
+				"name": "onERC721Received",
+				"outputs": [
+					{
+						"internalType": "bytes4",
+						"name": "",
+						"type": "bytes4"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
 				"inputs": [],
 				"name": "owner",
 				"outputs": [
@@ -409,6 +443,9 @@
 		"devdoc": {
 			"kind": "dev",
 			"methods": {
+				"onERC721Received(address,address,uint256,bytes)": {
+					"details": "Whenever an {IERC721} `tokenId` token is transferred to this contract via {IERC721-safeTransferFrom} by `operator` from `from`, this function is called. It must return its Solidity selector to confirm the token transfer. If any other value is returned or the interface is not implemented by the recipient, the transfer will be reverted. The selector can be obtained in Solidity with `IERC721.onERC721Received.selector`."
+				},
 				"owner()": {
 					"details": "Returns the address of the current owner."
 				},
@@ -475,6 +512,14 @@
 				"dweb:/ipfs/QmRPLguRFvrRJS7r6F1bcLvsx6q1VrgjEpZafyeL8D7xZh"
 			]
 		},
+		"@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol": {
+			"keccak256": "0xd5fa74b4fb323776fa4a8158800fec9d5ac0fec0d6dd046dd93798632ada265f",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://33017a30a99cc5411a9e376622c31fc4a55cfc6a335e2f57f00cbf24a817ff3f",
+				"dweb:/ipfs/QmWNQtWTPhA7Lo8nbxbc8KFMvZwbFYB8fSeEQ3vuapSV4a"
+			]
+		},
 		"@openzeppelin/contracts/utils/Context.sol": {
 			"keccak256": "0xe2e337e6dde9ef6b680e07338c493ebea1b5fd09b43424112868e9cc1706bca7",
 			"license": "MIT",
@@ -500,11 +545,11 @@
 			]
 		},
 		"contracts/TestMarketplace.sol": {
-			"keccak256": "0xe1b4e2191859b6198978da3e81d9cc829d0f5fcc421c594b16703a64720d4403",
+			"keccak256": "0xe930a5eb5f0f02535071deac2dc354a003d22f1b10022ef0ad440ece30271047",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://707b6b98a3488eaf742611c8969aa90d0a8916d449e21e8a6eb62cce1ad74595",
-				"dweb:/ipfs/QmejpYbdVbdCrwwUQWyZ8p8FvaMSUSzxUiwC3XWyKMKiP9"
+				"bzz-raw://c7c63ace57893f79d7c757708ce80d9e310309b5f4d4cb51fe724624ba6ef6aa",
+				"dweb:/ipfs/QmR3shmyXPQKKMDYbC3E3QodUUNYMrbGhjvNT4dSkXouJ9"
 			]
 		}
 	},
