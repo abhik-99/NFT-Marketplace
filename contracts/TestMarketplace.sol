@@ -16,11 +16,11 @@ contract TestMarketplace is Ownable, ReentrancyGuard, IERC721Receiver {
   Counters.Counter private _itemIds;
   Counters.Counter private _itemsSold;
 
-  uint256 private _amountCollected;
-
   address public nftContract;
   address public acceptedTokenAddress;
   uint256 public listingPrice = 0.1 ether;
+
+  uint256 private _amountCollected;
 
   struct MarketItem {
     uint itemId;
@@ -69,7 +69,6 @@ contract TestMarketplace is Ownable, ReentrancyGuard, IERC721Receiver {
     uint256 tokenId,
     uint256 price
   ) public nonReentrant {
-    require(price > 0, "Price must be at least 1 wei");
     require(price >= listingPrice, "Price should be at least same as listing price");
 
     _itemIds.increment();
@@ -79,8 +78,8 @@ contract TestMarketplace is Ownable, ReentrancyGuard, IERC721Receiver {
       itemId,
       tokenId,
       msg.sender,
-      address(0),
-      price,
+      address(this),
+      price - listingPrice,
       false,
       false,
       true
@@ -96,12 +95,14 @@ contract TestMarketplace is Ownable, ReentrancyGuard, IERC721Receiver {
       tokenId,
       msg.sender,
       address(0),
-      price
+      price - listingPrice
     );
   }
   
   function createSale(
-    uint256 itemId
+    uint256 itemId,
+    bool changePrice,
+    uint256 newPrice
   ) public nonReentrant {
     
     MarketItem memory item = idToMarketItem[itemId];
@@ -110,13 +111,14 @@ contract TestMarketplace is Ownable, ReentrancyGuard, IERC721Receiver {
     require(item.exists == true, "Item does not exist.");
     
     idToMarketItem[itemId].isUpForSale = true;
-    
+    if(changePrice) idToMarketItem[itemId].price = newPrice;
+
     emit MarketItemUpForSale (
       itemId,
       item.tokenId,
       msg.sender,
       item.seller,
-      item.price
+      idToMarketItem[itemId].price
     );
   }
 
@@ -130,14 +132,15 @@ contract TestMarketplace is Ownable, ReentrancyGuard, IERC721Receiver {
     require(itemPrice >= price, "Asking Price not satisfied!");
     require(isUpForSale == true, "NFT not for sale.");
 
-    address prevSeller = idToMarketItem[itemId].seller;
+    address prevSeller = idToMarketItem[itemId].owner;
 
+    idToMarketItem[itemId].price = itemPrice;
     idToMarketItem[itemId].owner = msg.sender;
     idToMarketItem[itemId].seller = msg.sender;
     idToMarketItem[itemId].isSold = true;
     idToMarketItem[itemId].isUpForSale = false;
 
-    IERC721(nftContract).transferFrom(prevSeller, msg.sender, tokenId);
+    IERC721(nftContract).safeTransferFrom(prevSeller, msg.sender, tokenId);
     
     IERC20(acceptedTokenAddress).transferFrom(msg.sender, prevSeller, itemPrice);
     
